@@ -7,6 +7,7 @@ import { errorHandler } from './middlewares/errorMiddleware';
 import apiRoutes from './routes';
 import { validateConfig, SERVER_CONFIG, FILE_CONFIG } from './config/env';
 import { testOpenAIConnection } from './services/openaiService';
+import './app';
 
 // 初始化应用
 const app: Express = express();

@@ -29,6 +29,8 @@ tmp/
 uploads/
 outputs/
 
+data/
+
 # IDE配置
 .idea/
 .vscode/

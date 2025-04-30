@@ -1,26 +1,7 @@
-import axios from 'axios';
+import http from '@/lib/http';
 import type { TranslationOptions, TranslationTask, BatchTranslationStatus } from '../types';
 
 const API_BASE_URL = 'http://localhost:3000/api';
-
-// 创建axios实例
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 60000,
-  headers: {
-    'Content-Type': 'application/json'
-  }
-});
-
-// 错误处理
-api.interceptors.response.use(
-  response => response,
-  error => {
-    const errorMessage = error.response?.data?.message || error.message || '请求出错';
-    console.error('API请求错误:', errorMessage);
-    return Promise.reject(error);
-  }
-);
 
 // 文件上传配置
 export const uploadConfig = {
@@ -44,7 +25,7 @@ export const translateFile = async (file: File, options: TranslationOptions) => 
     formData.append('preserveFormatting', String(options.preserveFormatting));
   }
   
-  const response = await axios.post(`${API_BASE_URL}/translations`, formData, uploadConfig);
+  const response = await http.post(`${API_BASE_URL}/translations`, formData, uploadConfig);
   return response.data;
 };
 
@@ -66,19 +47,19 @@ export const translateBatch = async (files: File[], options: TranslationOptions)
     formData.append('preserveFormatting', String(options.preserveFormatting));
   }
   
-  const response = await axios.post(`${API_BASE_URL}/translations/batch`, formData, uploadConfig);
+  const response = await http.post(`${API_BASE_URL}/translations/batch`, formData, uploadConfig);
   return response.data;
 };
 
 // 获取任务状态
 export const getTaskStatus = async (taskId: string) => {
-  const response = await api.get<{ task: TranslationTask }>(`/translations/${taskId}`);
+  const response = await http.get<{ task: TranslationTask }>(`/translations/${taskId}`);
   return response.data.task;
 };
 
 // 获取批量任务进度
 export const getBatchProgress = async (batchId: string, taskIds: string[]) => {
-  const response = await api.post<{ status: BatchTranslationStatus }>('/translations/batch/progress', {
+  const response = await http.post<{ status: BatchTranslationStatus }>('/translations/batch/progress', {
     batchId,
     taskIds
   });
@@ -87,13 +68,13 @@ export const getBatchProgress = async (batchId: string, taskIds: string[]) => {
 
 // 获取所有任务
 export const getAllTasks = async () => {
-  const response = await api.get<{ tasks: TranslationTask[] }>('/translations');
+  const response = await http.get<{ tasks: TranslationTask[] }>('/translations');
   return response.data.tasks;
 };
 
 // 删除任务
 export const deleteTask = async (taskId: string) => {
-  const response = await api.delete(`/translations/${taskId}`);
+  const response = await http.delete(`/translations/${taskId}`);
   return response.data;
 };
 
@@ -104,7 +85,7 @@ export const downloadTranslation = (taskId: string) => {
 
 // 下载批量翻译结果
 export const downloadBatchResults = async (taskIds: string[]) => {
-  const response = await api.post('/translations/batch/download', { taskIds }, { responseType: 'blob' });
+  const response = await http.post('/translations/batch/download', { taskIds }, { responseType: 'blob' });
   
   const url = window.URL.createObjectURL(new Blob([response.data]));
   const link = document.createElement('a');
@@ -116,4 +97,10 @@ export const downloadBatchResults = async (taskIds: string[]) => {
   // 清理
   window.URL.revokeObjectURL(url);
   document.body.removeChild(link);
+};
+
+// 重新翻译任务
+export const retryTranslation = async (taskId: string) => {
+  const response = await http.post(`/translations/${taskId}/retry`);
+  return response.data;
 }; 

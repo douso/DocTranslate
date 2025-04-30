@@ -166,6 +166,48 @@ export const useTranslationStore = defineStore('translation', {
       } finally {
         this.setLoading(false);
       }
+    },
+    
+    // 批量删除任务
+    async batchDeleteTasks(taskIds: string[]) {
+      if (!taskIds || taskIds.length === 0) return;
+      
+      this.setLoading(true);
+      
+      try {
+        await Promise.all(taskIds.map(taskId => 
+          api.deleteTask(taskId)
+        ));
+        
+        // 删除后更新任务列表
+        await this.fetchAllTasks();
+      } catch (error) {
+        console.error('批量删除任务失败:', error);
+        this.setError('批量删除任务失败');
+        throw error;
+      } finally {
+        this.setLoading(false);
+      }
+    },
+    
+    // 重新翻译任务
+    async retryTranslation(taskId: string) {
+      try {
+        this.setLoading(true);
+        this.setError(null);
+        
+        const response = await api.retryTranslation(taskId);
+        
+        // 更新任务列表
+        await this.fetchAllTasks();
+        
+        return response;
+      } catch (error) {
+        this.setError(`重新翻译任务失败: ${(error as Error).message}`);
+        throw error;
+      } finally {
+        this.setLoading(false);
+      }
     }
   }
 }); 

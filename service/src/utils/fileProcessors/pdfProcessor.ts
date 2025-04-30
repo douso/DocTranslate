@@ -1,5 +1,6 @@
 import fs from 'fs-extra';
 import pdf from 'pdf-parse';
+import path from 'path';
 import { TranslationOptions } from '../../types/file';
 import { translateText } from '../../services/openaiService';
 import logger from '../logger';
@@ -36,7 +37,17 @@ export async function processPdfFile(filePath: string, options: TranslationOptio
     );
     
     // 合并翻译结果
-    return translatedChunks.join('');
+    const translatedContent = translatedChunks.join('');
+    
+    // 创建临时文件存储翻译后的内容
+    const tempDir = process.env.TEMP_DIR || 'temp';
+    fs.ensureDirSync(tempDir);
+    const tempFilePath = path.join(tempDir, `${path.basename(filePath, path.extname(filePath))}_translated.txt`);
+    
+    // 写入文件
+    await fs.writeFile(tempFilePath, translatedContent, 'utf8');
+    
+    return tempFilePath;
   } catch (error) {
     logger.error({ error }, 'PDF文件处理失败');
     throw new Error(`PDF文件处理失败: ${(error as Error).message}`);

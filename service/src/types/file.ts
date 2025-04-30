@@ -25,11 +25,12 @@ export interface TranslationTask {
   fileInfo: FileInfo;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   progress: number;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
   outputPath?: string;
   error?: string;
   retryCount: number;
+  fingerprint: string;
 }
 
 export interface TranslationOptions {
@@ -43,4 +44,7 @@ export interface TranslationResult {
   translatedText: string;
   success: boolean;
   error?: string;
-} 
+}
+
+// 任务状态
+export type TaskStatus = 'pending' | 'processing' | 'completed' | 'failed'; 

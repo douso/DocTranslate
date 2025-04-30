@@ -2,9 +2,10 @@ import express from 'express';
 import { 
   createTranslation, 
   getTranslationStatus, 
-  getAllTranslations, 
+  getUserTasks,
   deleteTranslation,
-  downloadTranslation
+  downloadTranslation,
+  retryTranslation
 } from '../controllers/translationController';
 import {
   createBatchTranslation,
@@ -27,8 +28,8 @@ router.post('/batch/progress', getBatchProgress);
 // 下载批量翻译结果
 router.post('/batch/download', downloadBatchResults);
 
-// 获取所有任务
-router.get('/', getAllTranslations);
+// 获取所有翻译任务
+router.get('/', getUserTasks);
 
 // 获取任务状态
 router.get('/:taskId', getTranslationStatus);
@@ -38,5 +39,8 @@ router.delete('/:taskId', deleteTranslation);
 
 // 下载单个翻译文件
 router.get('/:taskId/download', downloadTranslation);
+
+// 重新翻译任务
+router.post('/:taskId/retry', retryTranslation);
 
 export default router; 

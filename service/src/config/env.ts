@@ -41,7 +41,8 @@ export const FILE_CONFIG = {
 // 任务配置
 export const TASK_CONFIG = {
   maxConcurrentTasks: parseInt(process.env.MAX_CONCURRENT_TASKS || '3', 10),
-  maxRetryCount: parseInt(process.env.MAX_RETRY_COUNT || '3', 10)
+  maxRetryCount: parseInt(process.env.MAX_RETRY_COUNT || '3', 10),
+  taskExpiryTime: parseInt(process.env.TASK_EXPIRY_TIME || '86400000', 10)
 };
 
 // 验证配置

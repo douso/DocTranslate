@@ -112,7 +112,6 @@ const handleSelect = (key: string) => {
 .nav-container {
   display: flex;
   align-items: center;
-  width: 480px;
 }
 
 .nav-menu {
