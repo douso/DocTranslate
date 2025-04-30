@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, nextTick } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useTranslationStore } from '../stores/translation';
 import { ElMessage } from 'element-plus';
@@ -119,3 +119,8 @@ const handleSelect = (key: string) => {
   margin-right: 0;
 }
 </style> 
+<style>
+.el-menu--horizontal .el-menu-item:not(.is-disabled):focus, .el-menu--horizontal .el-menu-item:not(.is-disabled):hover {
+  background-color: #f7f7f7;
+}
+</style>
