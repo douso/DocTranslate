@@ -1,10 +1,13 @@
 import { getFingerprint } from "@/utils/fingerprint"
 import axios from "axios"
 
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL+'/api';
 
-// 获取浏览器指纹ID
-const fingerprint = await getFingerprint()
+let fingerprint = '';
+(async () => {
+  // 获取浏览器指纹ID
+  fingerprint = await getFingerprint()
+})()
 
 // 创建axios实例
 const api = axios.create({

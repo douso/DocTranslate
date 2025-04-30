@@ -3,7 +3,7 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import logger from '../utils/logger';
 import { translateText } from './openaiService';
-import { FileInfo, FileType, TranslationTask, TranslationOptions, TranslationResult } from '../types/file';
+import { FileInfo, FileType, TranslationTask, TranslationOptions, TranslationResult, TaskStatus } from '../types/file';
 import { parseFileType } from '../middlewares/uploadMiddleware';
 import { processTxtFile } from '../utils/fileProcessors/txtProcessor';
 import { processMarkdownFile } from '../utils/fileProcessors/markdownProcessor';
@@ -34,7 +34,7 @@ const MAX_RETRY_COUNT = parseInt(process.env.MAX_RETRY_COUNT || '3');
 let currentRunningTasks = 0;
 
 // 任务处理函数映射
-const fileProcessors: Record<FileType, (filePath: string, options: TranslationOptions) => Promise<string>> = {
+const fileProcessors: Record<FileType, (filePath: string, options: TranslationOptions, taskId: string) => Promise<string>> = {
   [FileType.TXT]: processTxtFile,
   [FileType.MARKDOWN]: processMarkdownFile,
   [FileType.WORD]: processWordFile,
@@ -148,12 +148,12 @@ async function startTranslation(taskId: string): Promise<void> {
 
     logger.info(`开始处理文件: ${task.fileInfo.originalname}, 类型: ${task.fileInfo.type}`);
 
-    // 处理文件
+    // 处理文件 - 传递taskId参数用于更新进度
     const result = await processor(task.fileInfo.path, {
       targetLanguage: task.fileInfo.options?.targetLanguage || 'Chinese',
       sourceLanguage: task.fileInfo.options?.sourceLanguage,
       preserveFormatting: task.fileInfo.options?.preserveFormatting !== false
-    });
+    }, taskId);
 
     // 处理特殊文件类型的输出结果
     let outputPath = '';
@@ -277,4 +277,29 @@ export const retryTranslationTask = async (taskId: string): Promise<boolean> => 
     logger.error(`重新翻译任务 ${taskId} 失败: ${errorMsg}`);
     return false;
   }
-}; 
+};
+
+// 更新任务状态
+export const updateTaskStatus = (taskId: string, status: TaskStatus, progress: number = 0, outputPath?: string, error?: string): TranslationTask | null => {
+  const task = tasks[taskId];
+  
+  if (!task) {
+    return null;
+  }
+  
+  task.status = status;
+  task.progress = progress;
+  task.updatedAt = new Date().toISOString();
+  
+  if (outputPath) {
+    task.outputPath = outputPath;
+  }
+  
+  if (error) {
+    task.error = error;
+  }
+  
+  saveTask(task);
+  
+  return task;
+};

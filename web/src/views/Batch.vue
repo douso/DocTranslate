@@ -13,22 +13,23 @@ const fileList = ref<File[]>([]);
 
 // 表单
 const form = reactive<TranslationOptions>({
-  targetLanguage: 'Chinese',
+  targetLanguage: '',
   sourceLanguage: '',
   preserveFormatting: true
 });
 
+try {
+  let options = localStorage.getItem('TranslateOptions');
+  if (options) {
+    options = JSON.parse(options);
+    Object.assign(form, options);
+  }
+} catch(err) {
+  console.log(err);
+}
+
 // 语言选项
-const languageOptions = [
-  { value: 'Chinese', label: '中文' },
-  { value: 'English', label: '英文' },
-  { value: 'Japanese', label: '日文' },
-  { value: 'Korean', label: '韩文' },
-  { value: 'French', label: '法文' },
-  { value: 'German', label: '德文' },
-  { value: 'Spanish', label: '西班牙文' },
-  { value: 'Russian', label: '俄文' }
-];
+const languageOptions = ['中文', '英文', '日文', '韩文', '法文', '德文', '西班牙文', '俄文'];
 
 // 计算总文件大小
 const totalSize = computed(() => {
@@ -75,10 +76,19 @@ const clearFileList = () => {
 
 // 提交批量翻译
 const handleSubmit = async () => {
+
+  if (!form.targetLanguage) {
+    ElMessage.warning('请选择目标语言');
+    return;
+  }
+
   if (fileList.value.length === 0) {
     ElMessage.warning('请先上传文件');
     return;
   }
+
+  // 本地缓存选择项
+  localStorage.setItem('TranslateOptions', JSON.stringify(form));
   
   const loading = ElLoading.service({
     lock: true,
@@ -147,23 +157,23 @@ const getFileIcon = (fileName: string) => {
     <el-card class="form-card" shadow="hover">
       <el-form :model="form" label-position="top">
         <el-form-item label="目标语言">
-          <el-select v-model="form.targetLanguage" placeholder="请选择目标语言">
+          <el-select v-model="form.targetLanguage" placeholder="请选择目标语言" allow-create filterable>
             <el-option
-              v-for="option in languageOptions"
-              :key="option.value"
-              :label="option.label"
-              :value="option.value"
+              v-for="language in languageOptions"
+              :key="language"
+              :label="language"
+              :value="language"
             />
           </el-select>
         </el-form-item>
         
         <el-form-item label="源语言 (可选，默认自动检测)">
-          <el-select v-model="form.sourceLanguage" placeholder="请选择源语言" clearable>
+          <el-select v-model="form.sourceLanguage" placeholder="请选择源语言" clearable allow-create filterable>
             <el-option
-              v-for="option in languageOptions"
-              :key="option.value"
-              :label="option.label"
-              :value="option.value"
+              v-for="language in languageOptions"
+              :key="language"
+              :label="language"
+              :value="language"
             />
           </el-select>
         </el-form-item>

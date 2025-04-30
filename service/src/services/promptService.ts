@@ -47,7 +47,7 @@ const translationPrompts: Record<FileType, PromptTemplate> = {
   },
   [FileType.JSON]: {
     name: 'json_translation',
-    content: '请将以下JSON字符串内容翻译成{targetLanguage}，只翻译值，不要翻译键，不要翻译JSON结构:\n\n{text}',
+    content: '请将以下JSON字符串内容翻译成{targetLanguage}，只翻译值，不要翻译键，不要翻译JSON结构，无法翻译的值直接返回原内容:\n\n{text}',
     description: 'JSON字符串翻译提示词'
   }
 };

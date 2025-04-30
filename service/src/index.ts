@@ -32,6 +32,7 @@ fs.ensureDirSync(path.resolve(process.cwd(), FILE_CONFIG.outputDir));
 app.use('/api', apiRoutes);
 
 // 静态文件服务
+app.use('/', express.static(path.join(process.cwd(), 'public')));
 app.use('/uploads', express.static(path.join(process.cwd(), FILE_CONFIG.uploadDir)));
 app.use('/outputs', express.static(path.join(process.cwd(), FILE_CONFIG.outputDir)));
 

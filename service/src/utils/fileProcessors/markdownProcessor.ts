@@ -2,36 +2,71 @@ import fs from 'fs-extra';
 import { TranslationOptions } from '../../types/file';
 import { translateText } from '../../services/openaiService';
 import logger from '../logger';
+import { updateTaskStatus } from '../../services/translationService';
 
 // 支持的块大小（字符数）
 const CHUNK_SIZE = 3000;
 
 // 处理Markdown文件
-export async function processMarkdownFile(filePath: string, options: TranslationOptions): Promise<string> {
+export async function processMarkdownFile(filePath: string, options: TranslationOptions, taskId?: string): Promise<string> {
   try {
+    // 如果有taskId，更新进度为5%（表示开始处理）
+    if (taskId) {
+      updateTaskStatus(taskId, 'processing', 5);
+    }
+    
     // 读取文件
     const content = await fs.readFile(filePath, 'utf8');
+    
+    // 如果有taskId，更新进度为15%（表示文件读取完成）
+    if (taskId) {
+      updateTaskStatus(taskId, 'processing', 15);
+    }
     
     // 分割Markdown为可管理的块，同时保留结构
     const chunks = splitMarkdownIntoChunks(content, CHUNK_SIZE);
     
+    // 如果有taskId，更新进度为20%（表示分块完成）
+    if (taskId) {
+      updateTaskStatus(taskId, 'processing', 20);
+    }
+    
     // 翻译每个块
-    const translatedChunks = await Promise.all(
-      chunks.map(async (chunk, index) => {
-        logger.info(`翻译Markdown块: ${index + 1}/${chunks.length}`);
-        return await translateText({
-          text: chunk,
-          targetLanguage: options.targetLanguage,
-          sourceLanguage: options.sourceLanguage,
-          preserveFormatting: true // Markdown格式必须保留
-        });
-      })
-    );
+    const translatedChunks = [];
+    for (let i = 0; i < chunks.length; i++) {
+      logger.info(`翻译Markdown块: ${i + 1}/${chunks.length}`);
+      
+      // 计算当前进度（20%-95%之间）
+      if (taskId) {
+        const progress = 20 + Math.round((i / chunks.length) * 75);
+        updateTaskStatus(taskId, 'processing', progress);
+      }
+      
+      const translatedChunk = await translateText({
+        text: chunks[i],
+        targetLanguage: options.targetLanguage,
+        sourceLanguage: options.sourceLanguage,
+        preserveFormatting: true // Markdown格式必须保留
+      });
+      
+      translatedChunks.push(translatedChunk);
+    }
+    
+    // 如果有taskId，更新进度为95%（表示翻译完成，准备合并结果）
+    if (taskId) {
+      updateTaskStatus(taskId, 'processing', 95);
+    }
     
     // 合并翻译结果
     return translatedChunks.join('');
   } catch (error) {
     logger.error({ error }, 'Markdown文件处理失败');
+    
+    // 如果有taskId，更新任务状态为失败
+    if (taskId) {
+      updateTaskStatus(taskId, 'failed', 0, undefined, (error as Error).message);
+    }
+    
     throw new Error(`Markdown文件处理失败: ${(error as Error).message}`);
   }
 }

@@ -1,14 +1,27 @@
-import OpenAI from 'openai';
+import OpenAI, { ClientOptions } from 'openai';
+import { HttpsProxyAgent } from "https-proxy-agent";
 import logger from '../utils/logger';
 import { FileType } from '../types/file';
 import { getTranslationPrompt, getGeneralPrompt } from './promptService';
 import { OPENAI_CONFIG } from '../config/env';
 
-// 初始化OpenAI客户端
-const openai = new OpenAI({
+const options: ClientOptions = {
   apiKey: OPENAI_CONFIG.apiKey,
   baseURL: OPENAI_CONFIG.baseUrl
-});
+};
+
+if (process.env.OPENAI_PROXY_URL) {
+  options.httpAgent = new HttpsProxyAgent(process.env.OPENAI_PROXY_URL, {
+    keepAlive: true,
+    keepAliveMsecs: 24 * 3600 * 1000,
+    maxSockets: 256,
+    timeout: 24 * 3600 * 1000,
+  });
+}
+
+
+// 初始化OpenAI客户端
+const openai = new OpenAI(options);
 
 interface TranslateOptions {
   sourceLanguage?: string; // 如果不提供，模型会自动检测

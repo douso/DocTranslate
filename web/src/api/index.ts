@@ -1,7 +1,7 @@
 import http from '@/lib/http';
 import type { TranslationOptions, TranslationTask, BatchTranslationStatus } from '../types';
 
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL+'/api';
 
 // 文件上传配置
 export const uploadConfig = {
@@ -25,7 +25,7 @@ export const translateFile = async (file: File, options: TranslationOptions) => 
     formData.append('preserveFormatting', String(options.preserveFormatting));
   }
   
-  const response = await http.post(`${API_BASE_URL}/translations`, formData, uploadConfig);
+  const response = await http.post('/translations', formData, uploadConfig);
   return response.data;
 };
 
@@ -47,7 +47,7 @@ export const translateBatch = async (files: File[], options: TranslationOptions)
     formData.append('preserveFormatting', String(options.preserveFormatting));
   }
   
-  const response = await http.post(`${API_BASE_URL}/translations/batch`, formData, uploadConfig);
+  const response = await http.post('/translations/batch', formData, uploadConfig);
   return response.data;
 };
 

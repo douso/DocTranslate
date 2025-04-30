@@ -96,31 +96,6 @@ export const getTasksByFingerprint = (fingerprint: string): TranslationTask[] =>
   return allTasks.filter(task => task.fingerprint === fingerprint);
 };
 
-// 更新任务状态
-export const updateTaskStatus = (taskId: string, status: TaskStatus, progress: number = 0, outputPath?: string, error?: string): TranslationTask | null => {
-  const task = getTask(taskId);
-  
-  if (!task) {
-    return null;
-  }
-  
-  task.status = status;
-  task.progress = progress;
-  task.updatedAt = new Date().toISOString();
-  
-  if (outputPath) {
-    task.outputPath = outputPath;
-  }
-  
-  if (error) {
-    task.error = error;
-  }
-  
-  saveTask(task);
-  
-  return task;
-};
-
 // 删除任务
 export const deleteTask = (taskId: string): boolean => {
   const taskDir = path.join(TASKS_DIR, taskId);
