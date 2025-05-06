@@ -11,11 +11,19 @@
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
     "@fingerprintjs/fingerprintjs": "^4.6.2",
+    "@vue-office/docx": "^1.6.3",
+    "@vue-office/excel": "^1.7.14",
+    "@vue-office/pdf": "^2.0.10",
     "axios": "^1.9.0",
     "element-plus": "^2.9.9",
+    "papaparse": "^5.5.2",
     "pinia": "^3.0.2",
+    "subtitle": "^4.2.2-alpha.0",
     "uuid": "^11.1.0",
+    "vditor": "^3.11.0",
     "vue": "^3.5.13",
+    "vue-demi": "^0.14.6",
+    "vue-json-pretty": "^2.4.0",
     "vue-router": "^4.5.1"
   },
   "devDependencies": {

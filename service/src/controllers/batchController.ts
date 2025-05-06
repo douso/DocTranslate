@@ -37,7 +37,7 @@ export const createBatchTranslation = asyncHandler(async (req: Request, res: Res
     const ext = path.extname(file.originalname).toLowerCase().substring(1);
     
     const fileInfo: FileInfo = {
-      originalname: file.originalname,
+      originalname: Buffer.from(file.originalname, 'latin1').toString('utf8'),
       filename: file.filename,
       path: file.path,
       size: file.size,

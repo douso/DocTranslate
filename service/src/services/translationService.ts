@@ -170,7 +170,7 @@ async function startTranslation(taskId: string): Promise<void> {
       // 文本类型文件，创建输出文件
       const outputFilename = `${task.id}${path.extname(task.fileInfo.originalname)}`;
       outputPath = path.join(outputDir, outputFilename);
-      await fs.writeFile(outputPath, result, 'utf8');
+      await fs.writeFile(outputPath, task.fileInfo.type === FileType.CSV ? '\ufeff' + result : result, 'utf8');
     }
 
     // 更新任务状态

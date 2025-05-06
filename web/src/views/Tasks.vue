@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, nextTick } from 'vue';
 import { ElMessageBox, ElMessage } from 'element-plus';
-import { Delete, Download } from '@element-plus/icons-vue';
+import { Delete, Download, View } from '@element-plus/icons-vue';
 import { useTranslationStore } from '../stores/translation';
 import type { TranslationTask, TaskStatus } from '../types';
 import HtmlTooltip from '@/components/HtmlTooltip/index.vue';
+import FilePreview from '@/components/FilePreview/FilePreview.vue';
 
 const store = useTranslationStore();
 const refreshInterval = ref<number | null>(null);
@@ -67,20 +68,20 @@ const loadTasks = async () => {
 const preserveSelectionLoadTasks = async () => {
   // 保存当前选中的任务ID
   const selectedTaskIds = multipleSelection.value.map(task => task.id);
-  
+
   // 获取最新任务列表
   await store.fetchAllTasks();
-  
+
   // 如果没有选中的项，直接返回
   if (selectedTaskIds.length === 0) return;
-  
+
   // 等待DOM更新
   await nextTick();
-  
+
   // 恢复选中状态 - 使用更可靠的ref引用
   [processingTable.value, completedTable.value, failedTable.value].forEach(table => {
     if (!table) return;
-    
+
     // 获取表格数据并恢复选中
     const tableData = table.data;
     if (tableData && tableData.length > 0) {
@@ -105,7 +106,7 @@ const handleDelete = async (taskId: string) => {
         type: 'warning',
       }
     );
-    
+
     await store.deleteTask(taskId);
     ElMessage.success('删除成功');
   } catch (error) {
@@ -161,7 +162,7 @@ const handleBatchDownload = () => {
   }
 
   const completedTasks = multipleSelection.value.filter(task => task.status === 'completed');
-  
+
   if (completedTasks.length === 0) {
     ElMessage.warning('选中的任务中没有已完成的任务');
     return;
@@ -246,7 +247,7 @@ const handleRetry = async (taskId: string) => {
         type: 'warning',
       }
     );
-    
+
     await store.retryTranslation(taskId);
     ElMessage.success('任务已加入重新翻译队列');
   } catch (error) {
@@ -255,13 +256,23 @@ const handleRetry = async (taskId: string) => {
     }
   }
 };
+
+const previewRef = ref();
+const host = import.meta.env.VITE_API_URL;
+const handlePreview = async (row: any, type: string) => {
+  if (type == 'target') {
+    previewRef.value.reset(`${host}/${row.outputPath.replace(/\\\\/, '/')}`, row.fileInfo.originalname, type);
+  } else {
+    previewRef.value.reset(`${host}/uploads/${row.fileInfo.filename}`, row.fileInfo.originalname, type);
+  }
+}
 </script>
 
 <template>
   <div class="tasks-container">
     <div class="section-title">
       <h2>任务管理</h2>
-      
+
       <div class="header-actions">
         <el-button type="primary" @click="refreshTasks" icon="Refresh">
           刷新
@@ -275,38 +286,24 @@ const handleRetry = async (taskId: string) => {
         /> -->
       </div>
     </div>
-    
+
     <el-card class="card-container" shadow="hover">
       <el-tabs type="border-card" class="tasks-tabs">
         <el-tab-pane :label="`进行中 (${processingTasks.length})`">
           <div class="table-toolbar" v-if="processingTasks.length > 0">
             <div class="batch-actions">
-              <el-button 
-                type="danger" 
-                size="small" 
-                icon="Delete" 
-                :disabled="!hasSelection"
-                @click="handleBatchDelete"
-              >
+              <el-button type="danger" size="small" icon="Delete" :disabled="!hasSelection" @click="handleBatchDelete">
                 批量删除
               </el-button>
             </div>
           </div>
-          
+
           <el-empty v-if="processingTasks.length === 0" description="暂无进行中的任务" />
-          
-          <el-table 
-            v-else 
-            ref="processingTable"
-            :data="processingTasks"
-            style="width: 100%"
-            border
-            stripe
-            max-height="500"
-            @selection-change="handleSelectionChange"
-          >
+
+          <el-table v-else ref="processingTable" :data="processingTasks" style="width: 100%" border stripe
+            max-height="530" @selection-change="handleSelectionChange">
             <el-table-column type="selection" width="55" />
-            
+
             <el-table-column label="任务ID" width="240" show-overflow-tooltip>
               <template #default="{ row }">
                 <el-tooltip :content="row.id" placement="top">
@@ -314,92 +311,71 @@ const handleRetry = async (taskId: string) => {
                 </el-tooltip>
               </template>
             </el-table-column>
-            
+
             <el-table-column label="文件名" min-width="200">
               <template #default="{ row }">
                 {{ row.fileInfo.originalname }}
               </template>
             </el-table-column>
-            
+
             <el-table-column label="大小" width="100">
               <template #default="{ row }">
                 {{ formatFileSize(row.fileInfo.size) }}
               </template>
             </el-table-column>
-            
-            <el-table-column label="状态" width="100">
-              <template #default="{ row }">
-                <el-tag :type="statusColorMap[row.status as keyof typeof statusColorMap]">
-                  {{ statusTextMap[row.status as keyof typeof statusTextMap] }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            
+
             <el-table-column label="进度" width="200">
               <template #default="{ row }">
                 <el-progress :percentage="row.progress" :status="row.status === 'failed' ? 'exception' : undefined" />
               </template>
             </el-table-column>
-            
+
+            <el-table-column label="状态" width="100">
+              <template #default="{ row }">
+                <el-tag :type="statusColorMap[row.status as keyof typeof statusColorMap]">
+                  {{ statusTextMap[row.status as keyof typeof statusTextMap] }}
+                </el-tag>
+              </template>
+            </el-table-column>
+
             <el-table-column label="创建时间" width="180">
               <template #default="{ row }">
                 {{ formatDate(row.createdAt) }}
               </template>
             </el-table-column>
-            
-            <el-table-column label="操作" width="100" fixed="right">
+
+            <el-table-column label="操作" width="166" fixed="right">
               <template #default="{ row }">
-                <el-button 
-                  type="danger" 
-                  size="small" 
-                  @click="handleDelete(row.id)"
-                  icon="Delete"
-                >
+                <el-button type="primary" size="small" @click="handlePreview(row, 'source')" icon="View">
+                  原文
+                </el-button>
+                <el-button type="danger" size="small" @click="handleDelete(row.id)" icon="Delete">
                   删除
                 </el-button>
               </template>
             </el-table-column>
           </el-table>
         </el-tab-pane>
-        
+
         <el-tab-pane :label="`已完成 (${completedTasks.length})`">
           <div class="table-toolbar" v-if="completedTasks.length > 0">
             <div class="batch-actions">
-              <el-button 
-                type="primary" 
-                size="small" 
-                icon="Download" 
-                :disabled="!hasSelection"
-                @click="handleBatchDownload"
-              >
+              <el-button type="primary" size="small" icon="Download" :disabled="!hasSelection"
+                @click="handleBatchDownload">
                 批量下载
               </el-button>
-              <el-button 
-                type="danger" 
-                size="small" 
-                icon="Delete" 
-                :disabled="!hasSelection"
-                @click="handleBatchDelete"
-              >
+              <el-button type="danger" size="small" icon="Delete" :disabled="!hasSelection" @click="handleBatchDelete">
                 批量删除
               </el-button>
             </div>
           </div>
-          
+
           <el-empty v-if="completedTasks.length === 0" description="暂无已完成的任务" />
-          
-          <el-table 
-            v-else 
-            ref="completedTable"
-            :data="completedTasks"
-            style="width: 100%"
-            border
-            stripe
-            max-height="500"
-            @selection-change="handleSelectionChange"
-          >
+
+          <el-table v-else ref="completedTable" :data="completedTasks" style="width: 100%" border stripe
+            max-height="530" @selection-change="handleSelectionChange">
             <el-table-column type="selection" width="55" />
-            
+
             <el-table-column label="任务ID" width="240" show-overflow-tooltip>
               <template #default="{ row }">
                 <el-tooltip :content="row.id" placement="top">
@@ -407,19 +383,19 @@ const handleRetry = async (taskId: string) => {
                 </el-tooltip>
               </template>
             </el-table-column>
-            
+
             <el-table-column label="文件名" min-width="200">
               <template #default="{ row }">
                 {{ row.fileInfo.originalname }}
               </template>
             </el-table-column>
-            
+
             <el-table-column label="大小" width="100">
               <template #default="{ row }">
                 {{ formatFileSize(row.fileInfo.size) }}
               </template>
             </el-table-column>
-            
+
             <el-table-column label="状态" width="100">
               <template #default="{ row }">
                 <el-tag :type="statusColorMap[row.status as keyof typeof statusColorMap]">
@@ -427,73 +403,52 @@ const handleRetry = async (taskId: string) => {
                 </el-tag>
               </template>
             </el-table-column>
-            
-            <el-table-column label="完成时间" width="180">
+
+            <el-table-column label="完成时间" width="160">
               <template #default="{ row }">
                 {{ formatDate(row.updatedAt) }}
               </template>
             </el-table-column>
-            
-            <el-table-column label="操作" width="270" fixed="right">
+
+            <el-table-column label="操作" width="244">
               <template #default="{ row }">
-                <el-button 
-                  type="primary" 
-                  size="small" 
-                  @click="handleDownload(row)"
-                  icon="Download"
-                >
+                <el-button type="primary" size="small" @click="handlePreview(row, 'source')" icon="View">
+                  原文
+                </el-button>
+                <el-button type="primary" size="small" @click="handlePreview(row, 'target')" icon="View">
+                  结果
+                </el-button>
+                <el-button type="primary" size="small" @click="handleDownload(row)" icon="Download">
                   下载
                 </el-button>
-                <el-button 
-                  type="warning" 
-                  size="small" 
-                  @click="handleRetry(row.id)"
-                  icon="Refresh"
-                >
-                  重新翻译
-                </el-button>
-                <el-button 
-                  type="danger" 
-                  size="small" 
-                  @click="handleDelete(row.id)"
-                  icon="Delete"
-                >
-                  删除
-                </el-button>
+                <p class="line2">
+                  <el-button type="warning" size="small" @click="handleRetry(row.id)" icon="Refresh">
+                    重翻
+                  </el-button>
+                  <el-button type="danger" size="small" @click="handleDelete(row.id)" icon="Delete">
+                    删除
+                  </el-button>
+                </p>
               </template>
             </el-table-column>
           </el-table>
         </el-tab-pane>
-        
+
         <el-tab-pane :label="`失败 (${failedTasks.length})`">
           <div class="table-toolbar" v-if="failedTasks.length > 0">
             <div class="batch-actions">
-              <el-button 
-                type="danger" 
-                size="small" 
-                icon="Delete" 
-                :disabled="!hasSelection"
-                @click="handleBatchDelete"
-              >
+              <el-button type="danger" size="small" icon="Delete" :disabled="!hasSelection" @click="handleBatchDelete">
                 批量删除
               </el-button>
             </div>
           </div>
-          
+
           <el-empty v-if="failedTasks.length === 0" description="暂无失败的任务" />
-          
-          <el-table 
-            v-else 
-            ref="failedTable"
-            :data="failedTasks"
-            style="width: 100%"
-            border
-            stripe
-            max-height="500"
-            @selection-change="handleSelectionChange"
-          >
+
+          <el-table v-else ref="failedTable" :data="failedTasks" style="width: 100%" border stripe max-height="530"
+            @selection-change="handleSelectionChange">
             <el-table-column type="selection" width="55" />
-            
+
             <el-table-column label="任务ID" width="240" show-overflow-tooltip>
               <template #default="{ row }">
                 <el-tooltip :content="row.id" placement="top">
@@ -501,19 +456,19 @@ const handleRetry = async (taskId: string) => {
                 </el-tooltip>
               </template>
             </el-table-column>
-            
+
             <el-table-column label="文件名" min-width="200">
               <template #default="{ row }">
                 {{ row.fileInfo.originalname }}
               </template>
             </el-table-column>
-            
+
             <el-table-column label="大小" width="100">
               <template #default="{ row }">
                 {{ formatFileSize(row.fileInfo.size) }}
               </template>
             </el-table-column>
-            
+
             <el-table-column label="状态" width="100">
               <template #default="{ row }">
                 <el-tag :type="statusColorMap[row.status as keyof typeof statusColorMap]">
@@ -521,46 +476,43 @@ const handleRetry = async (taskId: string) => {
                 </el-tag>
               </template>
             </el-table-column>
-            
+
             <el-table-column label="错误信息" min-width="200">
               <template #default="{ row }">
-                <HtmlTooltip :content="row.error || '未知错误'"/>
+                <HtmlTooltip :content="row.error || '未知错误'" />
                 <!-- <el-tooltip :content="row.error || '未知错误'" placement="top">
                   {{ row.error || '未知错误' }}
                 </el-tooltip> -->
               </template>
             </el-table-column>
-            
-            <el-table-column label="操作" width="190" fixed="right">
+
+            <el-table-column label="操作" width="166">
               <template #default="{ row }">
-                <el-button 
-                  type="warning" 
-                  size="small" 
-                  @click="handleRetry(row.id)"
-                  icon="Refresh"
-                >
-                  重新翻译
+                <el-button type="primary" size="small" @click="handlePreview(row, 'source')" icon="View">
+                  原文
                 </el-button>
-                <el-button 
-                  type="danger" 
-                  size="small" 
-                  @click="handleDelete(row.id)"
-                  icon="Delete"
-                >
+                <el-button type="danger" size="small" @click="handleDelete(row.id)" icon="Delete">
                   删除
                 </el-button>
+                <p class="line2">
+                  <el-button type="warning" size="small" @click="handleRetry(row.id)" icon="Refresh">
+                    重翻
+                  </el-button>
+                </p>
               </template>
             </el-table-column>
           </el-table>
         </el-tab-pane>
       </el-tabs>
     </el-card>
+
+    <FilePreview ref="previewRef"/>
   </div>
 </template>
 
 <style scoped>
 .tasks-container {
-  padding: 20px 0;
+  /* padding: 20px 0; */
 }
 
 .section-title {
@@ -587,9 +539,9 @@ const handleRetry = async (taskId: string) => {
   width: 140px;
 }
 
-.card-container {
+/* .card-container {
   margin-bottom: 20px;
-}
+} */
 
 .el-tag {
   font-weight: 500;
@@ -620,4 +572,8 @@ const handleRetry = async (taskId: string) => {
 :deep(.el-table .el-table__cell) {
   padding: 8px 0;
 }
-</style> 
+
+.line2 {
+  margin-top: 8px;
+}
+</style>
